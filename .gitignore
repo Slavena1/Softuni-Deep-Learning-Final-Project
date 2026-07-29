@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.env
+*.egg-info/
+
+data/wordbank_mandarin_items.csv
+data/hsk*.csv
+data/babylm_zh_frequencies.csv
+data/*.xlsx
+data/liu_2007_single_char.txt
+data/train-00000-of-00001.parquet
