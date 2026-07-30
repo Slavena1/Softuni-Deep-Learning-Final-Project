@@ -4,57 +4,80 @@ embeddings.py
 Transfer learning component: extract word embeddings from a pretrained
 Chinese transformer (frozen weights), for use as features in
 neural_models.py - the same "frozen base + custom head" pattern taught
-in the Vision Models exercise (Ex.6), applied to text.
-
-Model choice TODO: pick a pretrained Chinese encoder, e.g.
-'hfl/chinese-macbert-base' (recommended) or 'bert-base-chinese' as a
-simpler fallback.
+in the Vision Models exercise (Ex.6), applied to text, and consistent
+with the Language Models lecture's own rule of thumb ("more training
+data = less frozen layers") given our small word list stays fully
+frozen.
 """
 
 import numpy as np
+import torch
+from transformers import AutoModel, AutoTokenizer
+
+_MODEL_CACHE = {}
 
 
-def load_pretrained_model(model_name):
+def load_pretrained_model(model_name="hfl/chinese-macbert-base"):
     """
     Load a pretrained Chinese transformer + tokenizer, frozen
     (no fine-tuning - used purely as a fixed feature extractor).
-
-    TODO: implement with transformers.AutoModel / AutoTokenizer.
-    Freeze all parameters (requires_grad = False) - this is the
-    explicit "frozen base" transfer-learning pattern from Ex.6, and
-    matches the Language Models lecture's own rule of thumb ("more
-    training data = less frozen layers") given our small word list.
+    Cached in-memory by model_name so repeated calls don't re-load.
     """
-    raise NotImplementedError
+    if model_name in _MODEL_CACHE:
+        return _MODEL_CACHE[model_name]
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name)
+    model.eval()
+    for param in model.parameters():
+        param.requires_grad = False
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+
+    _MODEL_CACHE[model_name] = (model, tokenizer)
+    return model, tokenizer
 
 
 def get_word_embedding(word, model, tokenizer, pooling="mean"):
     """
-    Get a single embedding vector for one Mandarin word.
+    Get a single embedding vector for one Mandarin word, in isolation.
 
-    TODO: tokenize word (consider whether to embed the word in
-    isolation or in a carrier sentence - isolation is simpler but
-    a carrier sentence may give more meaningful contextual
-    embeddings; worth trying both and comparing).
-
-    pooling: how to combine sub-token embeddings into one vector
-    ('mean' pooling over tokens is a reasonable default; '[CLS]'
-    token is another common option - worth documenting which was
-    chosen and why in the notebook).
+    pooling:
+      'mean' - average sub-token hidden states, excluding [CLS]/[SEP]
+      'cls'  - use the [CLS] token's hidden state
     """
-    raise NotImplementedError
+    device = next(model.parameters()).device
+    inputs = tokenizer(word, return_tensors="pt").to(device)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    hidden = outputs.last_hidden_state.squeeze(0)
+
+    if pooling == "cls":
+        vec = hidden[0]
+    else:
+        # mean pool over the actual word tokens (exclude [CLS] and [SEP])
+        vec = hidden[1:-1].mean(dim=0) if hidden.shape[0] > 2 else hidden.mean(dim=0)
+
+    return vec.cpu().numpy()
 
 
-def build_embedding_matrix(word_list, model, tokenizer):
+def build_embedding_matrix(word_list, model, tokenizer, pooling="mean", verbose=True):
     """
-    Batch version of get_word_embedding for the full word list.
-    Returns a (n_words, embedding_dim) numpy array, in the same
-    row order as word_list, so it lines up with build_dataset()'s
-    output from data_prep.py.
-
-    TODO: implement, with progress logging since this could be slow
-    over the full word list - consider caching to disk (data/) so
-    this only needs to run once, same caching principle as the
-    LLM API responses.
+    Batch version of get_word_embedding. Returns (n_words, dim), in
+    the same row order as word_list - important: this positional
+    order is what lets the result be sliced with the same
+    idx_train/idx_test used for the baseline models.
     """
-    raise NotImplementedError
+    embeddings = []
+    for i, word in enumerate(word_list):
+        if verbose and i % 100 == 0:
+            print(f"  {i}/{len(word_list)} words embedded...")
+        embeddings.append(get_word_embedding(word, model, tokenizer, pooling=pooling))
+
+    if verbose:
+        print(f"  {len(word_list)}/{len(word_list)} done.")
+
+    return np.vstack(embeddings)
