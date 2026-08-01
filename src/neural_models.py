@@ -68,7 +68,8 @@ class DenseNet(nn.Module):
 
 def train_dense_nn(X_train, y_train, X_val, y_val, hidden_dim=32,
                     dropout=0.2, lr=1e-3, weight_decay=1e-4,
-                    epochs=300, patience=20, batch_size=32, verbose=True):
+                    epochs=300, patience=20, batch_size=32, verbose=True,
+                    seed=42):
     """
     Train a DenseNet with early stopping on validation loss.
 
@@ -77,9 +78,15 @@ def train_dense_nn(X_train, y_train, X_val, y_val, hidden_dim=32,
     handled at the notebook level, same discipline as the Pipeline
     approach in baseline_models.py, not inside this function.
 
+    `seed` fixes weight initialization and batch shuffling, so
+    repeated runs on the same data give identical results - matches
+    the random_state=42 convention already used everywhere else in
+    the project (split_raw, KFold, make_train_val_split).
+
     Returns (model, history) where history has per-epoch train/val
     losses, for learning-curve plotting.
     """
+    torch.manual_seed(seed)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     X_train_t = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(device)
