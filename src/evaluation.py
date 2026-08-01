@@ -22,6 +22,7 @@ analysis), and Section 4.4 if built (attention comparison).
 """
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import r2_score
 
 
@@ -69,10 +70,7 @@ def score_minimal_pair(llm_response, correct_choice):
 def bootstrap_ci(values, statistic=np.mean, n_boot=1000, ci=95, random_state=42):
     """
     Bootstrap resampling to get a confidence interval around any
-    statistic computed on `values` (default: the mean). General
-    purpose - use for per-word errors, feature importances, or
-    anything else that isn't paired model predictions (for that,
-    use bootstrap_r2_diff below instead).
+    statistic computed on `values` (default: the mean).
 
     Returns (point_estimate, lower, upper).
     """
@@ -94,9 +92,6 @@ def bootstrap_r2_ci(y_true, y_pred, n_boot=1000, ci=95, random_state=42):
     """
     Bootstrap CI on R^2 itself, by resampling (y_true, y_pred)
     pairs together with replacement and recomputing R^2 each time.
-    Gives an honest uncertainty range around a single model's
-    reported test R^2 - small test sets can produce R^2 estimates
-    that swing a lot between resamples.
 
     Returns (point_estimate, lower, upper).
     """
@@ -117,14 +112,9 @@ def bootstrap_r2_ci(y_true, y_pred, n_boot=1000, ci=95, random_state=42):
 def bootstrap_r2_diff(y_true, y_pred_a, y_pred_b, n_boot=1000, ci=95, random_state=42):
     """
     Paired bootstrap on the DIFFERENCE in R^2 between two models'
-    predictions on the SAME test set. Resamples the same indices
-    for both models each time (paired, not independent), since
-    both were evaluated on the same words.
+    predictions on the SAME test set.
 
-    Returns (point_estimate_of_diff, lower, upper). If the CI
-    excludes zero, the difference is unlikely to be due to chance
-    given this test set - this is the actual answer to "is this
-    difference real or noise," not just eyeballing two R^2 numbers.
+    Returns (point_estimate_of_diff, lower, upper).
     """
     rng = np.random.RandomState(random_state)
     y_true = np.asarray(y_true)
@@ -140,3 +130,25 @@ def bootstrap_r2_diff(y_true, y_pred_a, y_pred_b, n_boot=1000, ci=95, random_sta
     upper_pct = 100 - lower_pct
     point = r2_score(y_true, y_pred_a) - r2_score(y_true, y_pred_b)
     return point, np.percentile(boot_diff, lower_pct), np.percentile(boot_diff, upper_pct)
+
+
+def stratified_error_analysis(df, error_cols, strat_col, n_buckets=5, bucket_labels=None):
+    """
+    Bucket `df` by `strat_col` into `n_buckets` quantile groups, and
+    compute a bootstrap CI on the mean of each column in error_cols
+    within each bucket - the Section 7 stratification pattern
+    (frequency, concreteness, word length...), factored into one
+    reusable function instead of repeating it per variable.
+
+    Returns a tidy DataFrame: one row per (bucket, model).
+    """
+    df = df.copy()
+    df['_bucket'] = pd.qcut(df[strat_col], q=n_buckets, labels=bucket_labels, duplicates='drop')
+    records = []
+    for bucket, group in df.groupby('_bucket', observed=True):
+        for col in error_cols:
+            point, lo, hi = bootstrap_ci(group[col].values)
+            records.append({'bucket': bucket, 'model': col, 'n': len(group),
+                             'mean_error': round(point, 3),
+                             'ci_lower': round(lo, 3), 'ci_upper': round(hi, 3)})
+    return pd.DataFrame(records)
