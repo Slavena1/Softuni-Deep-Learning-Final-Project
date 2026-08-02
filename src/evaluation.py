@@ -11,7 +11,9 @@ Two-tier "does the model know this word?" methodology:
   for any of them - verified for both Claude and Qwen/DashScope):
   sentence completion and minimal-pair judgments, scored via
   LLM-as-judge, not exact/semantic string match.
-  
+
+Uncertainty Analysis (bootstrap)
+
 """
 
 import numpy as np
