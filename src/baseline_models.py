@@ -1,7 +1,7 @@
 """
-modeling.py
+baseline_model.py
 Train/test splitting and model pipelines for the Ridge, Lasso, and
-Random Forest models used in Sections 4 and 5.
+Random Forest models used.
 """
 
 import numpy as np
@@ -19,7 +19,7 @@ def split_raw(df, features, target_col, test_size=0.25, stratify_col=None):
     """
     Split raw (unscaled) features and target, returning train/test row
     indices alongside the split arrays so predictions can be traced back
-    to specific words (used in Section 5.5).
+    to specific words (used in Section 7).
     """
     X = df[features].values
     y = df[target_col].values
