@@ -3,11 +3,7 @@ embeddings.py
 
 Transfer learning component: extract word embeddings from a pretrained
 Chinese transformer (frozen weights), for use as features in
-neural_models.py - the same "frozen base + custom head" pattern taught
-in the Vision Models exercise (Ex.6), applied to text, and consistent
-with the Language Models lecture's own rule of thumb ("more training
-data = less frozen layers") given our small word list stays fully
-frozen.
+neural_models.py.
 """
 
 import numpy as np
