@@ -86,7 +86,7 @@ def train_dense_nn(X_train, y_train, X_val, y_val, hidden_dim=32,
     losses, for learning-curve plotting.
     """
     torch.manual_seed(seed)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
 
     X_train_t = torch.tensor(np.asarray(X_train), dtype=torch.float32).to(device)
     y_train_t = torch.tensor(np.asarray(y_train), dtype=torch.float32).to(device)
