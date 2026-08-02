@@ -1,8 +1,7 @@
 """
 neural_models.py
 
-Architecture comparison, in the spirit of Ex.2 and Ex.4: don't just
-train one model, compare a small progression of them on the same
+Architecture comparison on the same
 train/test split used by baseline_models.py (Ridge/RF from the ML
 project).
 
