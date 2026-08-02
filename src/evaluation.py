@@ -10,15 +10,8 @@ Two-tier "does the model know this word?" methodology:
   Tier 2 - API models, all three providers (no logprobs available
   for any of them - verified for both Claude and Qwen/DashScope):
   sentence completion and minimal-pair judgments, scored via
-  LLM-as-judge (see Language Models exercise, Problem 9), not
-  exact/semantic string match.
-
-Also home to the bootstrap/uncertainty utilities - direct lesson
-from the ML project's 86% feedback: don't compare importances or
-scores across models/datasets without an uncertainty estimate.
-Used in: Section 5 (architecture comparison), Section 6
-(uncertainty analysis proper), Section 7 (stratified error
-analysis), and Section 4.4 if built (attention comparison).
+  LLM-as-judge, not exact/semantic string match.
+  
 """
 
 import numpy as np
