@@ -1,0 +1,6 @@
+{
+  "confidence": 1.0,
+  "definition": "prompt; hint; reminder; notification",
+  "example_sentence": "系统会自动弹出提示，提醒用户保存文档。",
+  "can_use_in_sentence": true
+}
