@@ -147,3 +147,29 @@ def stratified_error_analysis(df, error_cols, strat_col, n_buckets=5, bucket_lab
                              'mean_error': round(point, 3),
                              'ci_lower': round(lo, 3), 'ci_upper': round(hi, 3)})
     return pd.DataFrame(records)
+
+
+def score_word_knowledge(response):
+    """
+    Primary score: the model's own self-reported confidence (0-1).
+    No separate judge call is needed for the core comparison, since
+    the structured response IS the model's direct self-assessment -
+    a cleaner signal than scoring free-text completions would have
+    required.
+    """
+    return response['confidence']
+
+
+def llm_judge_validate(word, response_to_check, judge_caller, judge_model_name):
+    """
+    Ask a separate judge model whether this model's self-reported definition/
+    example_sentence for `word` is actually correct.
+    Run on a random subset for validation, not every word.
+    """
+    prompt = (
+        f"A language model was asked about the Mandarin word '{word}' and gave this "
+        f"definition: '{response_to_check['definition']}' and example sentence: "
+        f"'{response_to_check['example_sentence']}'. Is this correct? Answer only 'yes' or 'no'."
+    )
+    answer_text, _, _ = judge_caller(prompt, judge_model_name)
+    return answer_text.strip().lower().startswith('y')
