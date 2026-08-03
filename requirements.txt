@@ -15,3 +15,4 @@ transformers>=4.40
 # LLM API clients
 anthropic>=0.30
 openai>=1.30
+pydantic>=2.0
