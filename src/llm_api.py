@@ -23,7 +23,7 @@ COST_LOG_PATH = "../data/cost_log.csv"
 MODEL_PRICING = {
     "claude-haiku-4-5-20251001": (1.0, 5.0),
     "gpt-4.1-mini": (0.40, 1.60),
-    "qwen-plus": (0.4, 1.2),  # via OpenRouter - verify actual rate there
+    "qwen/qwen-plus": (0.4, 1.2),  # via OpenRouter 
 }
 
 WORD_KNOWLEDGE_PROMPT = """You are being asked about a single Mandarin Chinese word, as part of a linguistics research study on vocabulary acquisition.
