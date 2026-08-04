@@ -19,6 +19,7 @@ Uncertainty Analysis (bootstrap)
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score
+from scipy.stats import spearmanr
 
 
 # ---- Tier 1: local model, internal access ----
@@ -173,3 +174,38 @@ def llm_judge_validate(word, response_to_check, judge_caller, judge_model_name):
     )
     answer_text, _, _ = judge_caller(prompt, judge_model_name)
     return answer_text.strip().lower().startswith('y')
+
+
+def compute_spectrum_score(df, value_col, freq_col='log_frequency', conc_col='concreteness',
+                            n_boot=1000, ci=95, random_state=42):
+    """
+    Compute a spectrum score (0=concreteness-driven, 1=frequency-driven)
+    for any value column against frequency and concreteness, via Spearman
+    correlations - generalizes features.spectrum_score to work on any
+    dataframe column, with a bootstrap CI.
+    Returns a dict: r_freq, r_conc, spectrum_score, ci_lower, ci_upper.
+    """
+    import features as ft
+
+    r_freq, _ = spearmanr(df[value_col], df[freq_col])
+    r_conc, _ = spearmanr(df[value_col], df[conc_col])
+    point_score = ft.spectrum_score(r_freq, r_conc)
+
+    rng = np.random.RandomState(random_state)
+    n = len(df)
+    boot_scores = []
+    for _ in range(n_boot):
+        idx = rng.randint(0, n, size=n)
+        sample = df.iloc[idx]
+        if sample[value_col].nunique() < 2:
+            continue
+        rf, _ = spearmanr(sample[value_col], sample[freq_col])
+        rc, _ = spearmanr(sample[value_col], sample[conc_col])
+        boot_scores.append(ft.spectrum_score(rf, rc))
+
+    lower_pct, upper_pct = (100 - ci) / 2, 100 - (100 - ci) / 2
+    return {
+        'r_freq': r_freq, 'r_conc': r_conc, 'spectrum_score': point_score,
+        'ci_lower': np.percentile(boot_scores, lower_pct),
+        'ci_upper': np.percentile(boot_scores, upper_pct),
+    }
