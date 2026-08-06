@@ -19,7 +19,8 @@ Uncertainty Analysis (bootstrap)
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr, rankdata, pearsonr
+import features as ft
 
 
 # ---- Tier 1: local model, internal access ----
@@ -209,3 +210,42 @@ def compute_spectrum_score(df, value_col, freq_col='log_frequency', conc_col='co
         'ci_lower': np.percentile(boot_scores, lower_pct),
         'ci_upper': np.percentile(boot_scores, upper_pct),
     }
+
+
+def compute_partial_spectrum_score(df, value_col, freq_col='log_frequency', conc_col='concreteness',
+                                    n_boot=1000, ci=95, random_state=42):
+    """
+    Partial Spearman correlation version of compute_spectrum_score:
+    isolates each feature's independent contribution, controlling for
+    the other - closer in spirit to what Lasso measures, and a
+    robustness check against collinearity inflating the raw version.
+    """
+    def partial_corrs(sub_df):
+        v = rankdata(sub_df[value_col]); f = rankdata(sub_df[freq_col]); c = rankdata(sub_df[conc_col])
+        r_vf, _ = pearsonr(v, f); r_vc, _ = pearsonr(v, c); r_fc, _ = pearsonr(f, c)
+        denom_f = np.sqrt((1 - r_vc**2) * (1 - r_fc**2))
+        denom_c = np.sqrt((1 - r_vf**2) * (1 - r_fc**2))
+        pr_vf = (r_vf - r_vc*r_fc) / denom_f if denom_f > 0 else 0.0
+        pr_vc = (r_vc - r_vf*r_fc) / denom_c if denom_c > 0 else 0.0
+        return pr_vf, pr_vc
+
+    pr_vf, pr_vc = partial_corrs(df)
+    point_score = ft.spectrum_score(pr_vf, pr_vc)
+
+    rng = np.random.RandomState(random_state)
+    n = len(df)
+    boot_scores = []
+    for _ in range(n_boot):
+        idx = rng.randint(0, n, size=n)
+        sample = df.iloc[idx]
+        if sample[value_col].nunique() < 2:
+            continue
+        try:
+            bpr_vf, bpr_vc = partial_corrs(sample)
+            boot_scores.append(ft.spectrum_score(bpr_vf, bpr_vc))
+        except Exception:
+            continue
+    lower_pct, upper_pct = (100 - ci) / 2, 100 - (100 - ci) / 2
+    return {'partial_r_freq': pr_vf, 'partial_r_conc': pr_vc, 'partial_spectrum_score': point_score,
+            'ci_lower': np.percentile(boot_scores, lower_pct),
+            'ci_upper': np.percentile(boot_scores, upper_pct)}
