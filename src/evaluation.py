@@ -1,6 +1,12 @@
 """
 evaluation.py
 
+Statistical evaluation utilities: bootstrap confidence intervals for
+R^2 and error metrics, stratified error analysis by word features,
+and spectrum-score computation (frequency- vs. concreteness-driven)
+with bootstrap CIs, including a partial-correlation variant that
+controls for collinearity between frequency and concreteness.
+
 """
 
 import numpy as np
