@@ -1,19 +1,6 @@
 """
 evaluation.py
 
-Two-tier "does the model know this word?" methodology:
-
-  Tier 1 - local model (full internal access): log-likelihood,
-  perplexity, masked-word prediction. The classic BabyLM-style
-  AoA-prediction method.
-
-  Tier 2 - API models, all three providers (no logprobs available
-  for any of them - verified for both Claude and Qwen/DashScope):
-  sentence completion and minimal-pair judgments, scored via
-  LLM-as-judge, not exact/semantic string match.
-
-Uncertainty Analysis (bootstrap)
-
 """
 
 import numpy as np
@@ -22,47 +9,6 @@ from sklearn.metrics import r2_score
 from scipy.stats import spearmanr, rankdata, pearsonr
 import features as ft
 
-
-# ---- Tier 1: local model, internal access ----
-
-def masked_word_probability(sentence, target_word, model, tokenizer):
-    """TODO: implement with a masked-LM model/head."""
-    raise NotImplementedError
-
-
-def sentence_log_likelihood(sentence, model, tokenizer):
-    """TODO: implement, document which conditioning was used."""
-    raise NotImplementedError
-
-
-def perplexity(sentences, model, tokenizer):
-    """TODO: implement using sentence_log_likelihood."""
-    raise NotImplementedError
-
-
-# ---- Tier 2: API model, text-output only ----
-
-def llm_judge_score(word, llm_response, judge_model_name):
-    """
-    LLM-as-judge scoring, modeled directly on the Language Models
-    exercise (Problem 9): a second LLM call judges whether the
-    response counts as knowing the word, rather than rigid
-    exact/semantic string matching.
-    TODO: implement after Aug 3 exercise (reuses llm_api.py).
-    """
-    raise NotImplementedError
-
-
-def score_minimal_pair(llm_response, correct_choice):
-    """
-    Score whether the model picked the expected option.
-    Note: randomize presentation order (or test both orders) to
-    guard against position bias in LLM preference judgments.
-    """
-    raise NotImplementedError
-
-
-# ---- Uncertainty (applies to both tiers) ----
 
 def bootstrap_ci(values, statistic=np.mean, n_boot=1000, ci=95, random_state=42):
     """
@@ -149,32 +95,6 @@ def stratified_error_analysis(df, error_cols, strat_col, n_buckets=5, bucket_lab
                              'mean_error': round(point, 3),
                              'ci_lower': round(lo, 3), 'ci_upper': round(hi, 3)})
     return pd.DataFrame(records)
-
-
-def score_word_knowledge(response):
-    """
-    Primary score: the model's own self-reported confidence (0-1).
-    No separate judge call is needed for the core comparison, since
-    the structured response IS the model's direct self-assessment -
-    a cleaner signal than scoring free-text completions would have
-    required.
-    """
-    return response['confidence']
-
-
-def llm_judge_validate(word, response_to_check, judge_caller, judge_model_name):
-    """
-    Ask a separate judge model whether this model's self-reported definition/
-    example_sentence for `word` is actually correct.
-    Run on a random subset for validation, not every word.
-    """
-    prompt = (
-        f"A language model was asked about the Mandarin word '{word}' and gave this "
-        f"definition: '{response_to_check['definition']}' and example sentence: "
-        f"'{response_to_check['example_sentence']}'. Is this correct? Answer only 'yes' or 'no'."
-    )
-    answer_text, _, _ = judge_caller(prompt, judge_model_name)
-    return answer_text.strip().lower().startswith('y')
 
 
 def compute_spectrum_score(df, value_col, freq_col='log_frequency', conc_col='concreteness',
