@@ -4,13 +4,14 @@
 - Wordbank Mandarin AoA data
 - HSK vocabulary lists (levels 1-6)
 - Chinese BabyLM corpus frequencies (babylm_zh_frequencies.csv)
-- Xu & Li (2021) two-character concreteness ratings
+- Xu & Li (2020) two-character concreteness ratings
 - Liu et al. (2007) single-character concreteness ratings
 
-Raw data files above are NOT committed to this repo - see
-../src/data_prep.py for the loader functions (ported directly from
-the ML project, unchanged), and place the files locally at these
-paths to run the notebook.
+Raw data files above are NOT committed to this repo. The notebook 
+downloads them automatically from a public Google Drive folder via 
+gdown at runtime — see ../src/data_prep.py for the loader functions 
+(ported directly from the ML project, unchanged), 
+and the root README for the Drive link.
 
 ## New for this project
 - llm_responses/ - cached structured responses from each LLM API
