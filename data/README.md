@@ -17,5 +17,5 @@ paths to run the notebook.
   tested, one subfolder per model. These ARE committed, so the
   notebook is reviewable with zero API cost.
 - cost_log.csv - running log of every API call made. Also committed.
-- Pretrained transformer: hfl/chinese-macbert-base (planned) -
+- Pretrained transformer: hfl/chinese-macbert-base -
   downloaded via transformers, not stored in this repo.
